@@ -1,5 +1,5 @@
 {
-  "name": "@APPNAME/web",
+  "name": "@puzzlepix/web",
   "private": true,
   "type": "module",
   "scripts": {
