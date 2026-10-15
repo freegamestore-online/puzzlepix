@@ -9,6 +9,7 @@
     "build": "pnpm --filter @puzzlepix/web build",
     "preview": "pnpm --filter @puzzlepix/web preview",
     "typecheck": "pnpm --filter @puzzlepix/web exec tsc -b",
-    "test": "pnpm --filter @puzzlepix/web test"
+    "test": "pnpm --filter @puzzlepix/web test",
+    "lint": "pnpm --filter @puzzlepix/web lint"
   }
 }

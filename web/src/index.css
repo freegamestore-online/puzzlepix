@@ -80,3 +80,25 @@ body {
   height: 100%;
   overflow: hidden;
 }
+
+/* The picture: one column, fitted to the space under the topbar. */
+.play-area {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 0;
+  width: 100%;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.art-frame canvas {
+  display: block;
+  width: min(88vw, 60dvh);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+}

@@ -1,20 +1,5 @@
-import { GameShell, GameTopbar, GameAuth } from "@freegamestore/games";
+import GameShell from "./GameShell";
 
 export default function App() {
-  return (
-    <GameShell topbar={<GameTopbar title="Puzzlepix" score={0} />}>
-      <GameAuth />
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <h1
-          className="text-3xl font-bold"
-          style={{ fontFamily: "Fraunces, serif" }}
-        >
-          Puzzlepix
-        </h1>
-        <p style={{ color: "var(--muted)" }}>
-          Your game will appear here once it&rsquo;s built.
-        </p>
-      </div>
-    </GameShell>
-  );
+  return <GameShell />;
 }
