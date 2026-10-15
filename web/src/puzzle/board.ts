@@ -158,7 +158,7 @@ export function isSolved(puzzle: Puzzle, placements: Placements): boolean {
   });
 }
 
-function isBorder(puzzle: Puzzle, id: number): boolean {
+export function isBorder(puzzle: Puzzle, id: number): boolean {
   const { col, row } = puzzle.pieces[id]!;
   return col === 0 || row === 0 || col === puzzle.cols - 1 || row === puzzle.rows - 1;
 }

@@ -1,6 +1,7 @@
-import { useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { outline, type Puzzle, type Step } from "./cut";
 import { drop, groupOf, isSolved, layoutTray, rotatePiece, snapThreshold, stageSize, type Placement, type TrayMode } from "./board";
+import { edgeIds, hintPlacements } from "./helpers";
 
 /** Picture kept around each piece, so the tabs are not clipped. */
 function padding(puzzle: Puzzle): number {
@@ -61,10 +62,20 @@ interface Drag {
 interface PuzzleBoardProps {
   source: HTMLCanvasElement;
   puzzle: Puzzle;
-  /** Seeds the scatter or edge layout of the tray. */
+  /** Seeds the scatter or edge layout of the tray, when there is no saved placement. */
   seed: number;
   trayMode: TrayMode;
   rotations: boolean;
+  /** Where the pieces were when the puzzle was last left. Resumes it exactly when given. */
+  initial?: readonly Placement[] | null;
+  /** Called with the placements after every change, including the first layout. */
+  onChange?: (placements: readonly Placement[]) => void;
+  /** Bump this to apply one hint. Each new value is applied once. */
+  hintRequest: number;
+  /** Hide every piece that is not on the edge of the picture. */
+  edgesOnly: boolean;
+  /** A faint copy of the whole picture under the board, or null for none. */
+  ghostUrl: string | null;
   /** Screen pixels per table pixel, so the whole table fits its container. */
   fit: number;
 }
@@ -74,11 +85,30 @@ interface PuzzleBoardProps {
  * group on screen, and the rules in board.ts decide where it lands on release. A tap turns a
  * lone piece when turning is on.
  */
-export function PuzzleBoard({ source, puzzle, seed, trayMode, rotations, fit }: PuzzleBoardProps) {
-  const [placements, setPlacements] = useState(() => layoutTray(puzzle, trayMode, seed, rotations));
+export function PuzzleBoard({
+  source,
+  puzzle,
+  seed,
+  trayMode,
+  rotations,
+  initial,
+  onChange,
+  hintRequest,
+  edgesOnly,
+  ghostUrl,
+  fit,
+}: PuzzleBoardProps) {
+  const [placements, setPlacements] = useState<readonly Placement[]>(
+    () => initial ?? layoutTray(puzzle, trayMode, seed, rotations),
+  );
   const images = useMemo(() => puzzle.pieces.map((p) => drawPiece(source, puzzle, p.id)), [source, puzzle]);
+  const edges = useMemo(() => new Set(edgeIds(puzzle)), [puzzle]);
   const elements = useRef(new Map<number, HTMLDivElement>());
   const drag = useRef<Drag | null>(null);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
   const pad = padding(puzzle);
   const threshold = snapThreshold(puzzle);
   const size = stageSize(puzzle);
@@ -93,7 +123,16 @@ export function PuzzleBoard({ source, puzzle, seed, trayMode, rotations, fit }: 
       el.style.transform = transformOf(placements[piece.id]!, pad);
       el.style.zIndex = "";
     }
+    onChangeRef.current?.(placements);
   }, [placements, puzzle, pad]);
+
+  // A hint is applied once per request, while rendering, so no extra pass is needed.
+  const [seenHint, setSeenHint] = useState(hintRequest);
+  if (hintRequest !== seenHint) {
+    setSeenHint(hintRequest);
+    const next = hintPlacements(puzzle, placements);
+    if (next) setPlacements(next);
+  }
 
   const pieceAt = (target: EventTarget): number | null => {
     const el = (target as HTMLElement).closest<HTMLElement>("[data-piece]");
@@ -157,13 +196,22 @@ export function PuzzleBoard({ source, puzzle, seed, trayMode, rotations, fit }: 
         onPointerCancel={onPointerCancel}
       >
         <div className="puzzle-board" style={{ width: puzzle.width, height: puzzle.height }} />
+        {ghostUrl && (
+          <img
+            className="puzzle-ghost"
+            src={ghostUrl}
+            alt=""
+            style={{ width: puzzle.width, height: puzzle.height }}
+          />
+        )}
         {puzzle.pieces.map((piece) => {
           const canvas = images[piece.id]!;
+          const hidden = edgesOnly && !edges.has(piece.id);
           return (
             <div
               key={piece.id}
               data-piece={piece.id}
-              className="piece"
+              className={hidden ? "piece piece-hidden" : "piece"}
               style={{ width: canvas.width, height: canvas.height }}
               ref={(el) => {
                 if (!el) {

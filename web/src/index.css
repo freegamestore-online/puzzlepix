@@ -158,3 +158,26 @@ body {
   font: 800 1.5rem "Fraunces", serif;
   pointer-events: none;
 }
+
+/* Edges-only view: interior pieces are hidden, not removed, so they come back when the view changes. */
+.piece-hidden {
+  display: none;
+}
+
+/* Ghost: the whole picture, faint, under the pieces. */
+.puzzle-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.daily-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink);
+  font-weight: 700;
+}
