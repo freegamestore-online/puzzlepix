@@ -6,13 +6,14 @@ import {
   GameThemeToggle,
   GameTopbar,
   Leaderboard,
+  useGameSounds,
   useLeaderboard,
 } from "@freegamestore/games";
 import { generateImage } from "./art/generator";
 import { hashInts } from "./art/rng";
-import { dailyPicture, PACK_NAMES, PICTURE_COUNT, PICTURES, utcDateKey, type Picture } from "./art/pictures";
+import { dailyPicture, PICTURE_COUNT, PICTURES, utcDateKey, type Picture } from "./art/pictures";
 import { dailyKey, dailyScore, loadSaves, puzzleKey, restorePlacements, saveSaves, shouldSubmitDaily, type SavedState } from "./game/saves";
-import { BOARD_SIZE, DAILY_COUNT, dailyPuzzle } from "./puzzle/daily";
+import { BOARD_SIZE, dailyPuzzle } from "./puzzle/daily";
 import { isSolved, stageSize, type Placement, type TrayMode } from "./puzzle/board";
 import { cutPuzzle, PIECE_COUNTS, type PieceCount, type Puzzle } from "./puzzle/cut";
 import { PuzzleBoard } from "./puzzle/PuzzleBoard";
@@ -49,6 +50,8 @@ export default function GameShell() {
   const [hintRequest, setHintRequest] = useState(0);
   const { topScores, recentScores, loading, submitScore } = useLeaderboard(LEADERBOARD_GAME);
   const submitting = useRef(false);
+  // Sounds are synthesized and stay silent until the player unmutes them in the topbar.
+  const sounds = useGameSounds();
   const wrap = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState(1);
 
@@ -92,13 +95,19 @@ export default function GameShell() {
 
   const ghostUrl = useMemo(() => (ghost ? active.source.toDataURL("image/png") : null), [ghost, active.source]);
 
-  // Scale the table to the space under the controls, and again whenever the window changes.
+  // Scale the table to the space under the controls. Measured again whenever that space changes,
+  // such as a rotated phone or a footer that wraps onto a second line.
   useEffect(() => {
     const measure = () => {
       const el = wrap.current;
       if (el) setFit(Math.max(0.05, Math.min(el.clientWidth / width, el.clientHeight / height)));
     };
     measure();
+    if (typeof ResizeObserver !== "undefined" && wrap.current) {
+      const observer = new ResizeObserver(measure);
+      observer.observe(wrap.current);
+      return () => observer.disconnect();
+    }
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [width, height]);
@@ -120,6 +129,16 @@ export default function GameShell() {
       });
     },
     [puzzle, storeKey, mode, today],
+  );
+
+  // A piece that locks in plays the snap click; a loose drop a softer one; a solve a fanfare.
+  const onPlace = useCallback(
+    (kind: "snap" | "drop", placements: readonly Placement[]) => {
+      if (isSolved(puzzle, placements)) sounds.playLevelUp();
+      else if (kind === "snap") sounds.playDrop();
+      else sounds.playMove();
+    },
+    [puzzle, sounds],
   );
 
   // A hint before the solve makes the daily time ineligible. A hint after it changes nothing.
@@ -150,21 +169,14 @@ export default function GameShell() {
       actions={<GameThemeToggle />}
       stats={
         mode === "daily"
-          ? [
-              { label: "Daily", value: today },
-              { label: "Pieces", value: DAILY_COUNT, accent: true },
-            ]
-          : [
-              { label: "Pack", value: PACK_NAMES[picture.pack] },
-              { label: "Pieces", value: count, accent: true },
-            ]
+          ? [{ label: "Daily", value: "Today", accent: true }]
+          : [{ label: "Pieces", value: count, accent: true }]
       }
     />
   );
 
   return (
     <PlatformShell topbar={topbar}>
-      <GameAuth />
       <div className="play-area">
         <div className="puzzle-controls" role="group" aria-label="Puzzle options">
           <GameButton size="sm" variant={mode === "daily" ? "primary" : "ghost"} onClick={() => setMode("daily")}>
@@ -226,9 +238,16 @@ export default function GameShell() {
             hintRequest={hintRequest}
             edgesOnly={edgesOnly}
             ghostUrl={ghostUrl}
+            onPlace={onPlace}
             fit={fit}
           />
         </div>
+        <footer className="credits">
+          <GameAuth />
+          <a href="https://freegamestore.online" target="_blank" rel="noopener">
+            Built for freegamestore.online
+          </a>
+        </footer>
         {dailyDone && record?.solvedMs !== undefined && (
           <div className="daily-result">
             <p>Daily time {formatTime(record.solvedMs)}</p>

@@ -34,28 +34,28 @@
   font-family: "Manrope", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #0f0f0f;
-    --ink: #f5f5f5;
-    --muted: #9ca3af;
-    --line: #2d2d2d;
-    --line-strong: #404040;
-    --panel: #1a1a1a;
-    --glass: rgba(15, 15, 15, 0.8);
-    --dock: #1a1a1a;
+/* Dark palette: the SDK theme toggle sets data-theme="dark" on <html>, and it resolves the
+   system setting itself, so this is the one switch for dark mode. */
+:root[data-theme="dark"] {
+  --paper: #0f0f0f;
+  --ink: #f5f5f5;
+  --muted: #9ca3af;
+  --line: #2d2d2d;
+  --line-strong: #404040;
+  --panel: #1a1a1a;
+  --glass: rgba(15, 15, 15, 0.8);
+  --dock: #1a1a1a;
 
-    --success: #22c55e;
-    --warning: #fbbf24;
-    --error: #ef4444;
+  --success: #22c55e;
+  --warning: #fbbf24;
+  --error: #ef4444;
 
-    --accent-soft: #1a2e26;
+  --accent-soft: #1a2e26;
 
-    /* Backward-compat aliases */
-    --bg: #0f0f0f;
-    --surface: #1a1a1a;
-    --border: #2d2d2d;
-  }
+  /* Backward-compat aliases */
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --border: #2d2d2d;
 }
 
 /* Games are fullscreen — no document scroll, no text selection */
@@ -83,6 +83,8 @@ body {
 
 /* The picture: one column, fitted to the space under the topbar. */
 .play-area {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -97,6 +99,7 @@ body {
 
 /* Puzzle controls: a row of options that wraps on narrow screens. */
 .puzzle-controls {
+  flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -151,7 +154,6 @@ body {
 .solved-note {
   position: absolute;
   left: 50%;
-  top: 50%;
   margin: 0;
   transform: translate(-50%, -50%);
   color: var(--accent);
@@ -180,4 +182,74 @@ body {
   gap: 0.5rem;
   color: var(--ink);
   font-weight: 700;
+}
+
+/* Completion: the clean picture fades in over the pieces, then a sheen crosses the board. */
+.puzzle-reveal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.puzzle-reveal-fade {
+  animation: puzzle-fade-in 700ms ease-out both;
+}
+
+.puzzle-stage.is-shimmering .puzzle-board::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.55) 50%, transparent 60%);
+  background-size: 250% 100%;
+  animation: puzzle-shimmer 1.2s ease-in-out 0.7s 1 both;
+}
+
+@keyframes puzzle-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes puzzle-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+/* Reduced motion: the completed picture still shows, with no animation. */
+@media (prefers-reduced-motion: reduce) {
+  .puzzle-reveal-fade,
+  .puzzle-stage.is-shimmering .puzzle-board::after {
+    animation: none;
+  }
+}
+
+/* A piece is moved on the compositor while it is dragged. */
+.piece {
+  will-change: transform;
+}
+
+.credits {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 0.75rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.credits a {
+  color: var(--accent);
+  text-decoration: none;
 }

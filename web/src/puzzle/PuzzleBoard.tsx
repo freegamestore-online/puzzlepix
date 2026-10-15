@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEven
 import { outline, type Puzzle, type Step } from "./cut";
 import { drop, groupOf, isSolved, layoutTray, rotatePiece, snapThreshold, stageSize, type Placement, type TrayMode } from "./board";
 import { edgeIds, hintPlacements } from "./helpers";
+import { completionEffects } from "./completion";
+import { prefersReducedMotion } from "../motion/reducedMotion";
 
 /** Picture kept around each piece, so the tabs are not clipped. */
 function padding(puzzle: Puzzle): number {
@@ -76,6 +78,8 @@ interface PuzzleBoardProps {
   edgesOnly: boolean;
   /** A faint copy of the whole picture under the board, or null for none. */
   ghostUrl: string | null;
+  /** Called after a piece is let go: "snap" when it locked into place, "drop" otherwise. */
+  onPlace?: (kind: "snap" | "drop", placements: readonly Placement[]) => void;
   /** Screen pixels per table pixel, so the whole table fits its container. */
   fit: number;
 }
@@ -96,6 +100,7 @@ export function PuzzleBoard({
   hintRequest,
   edgesOnly,
   ghostUrl,
+  onPlace,
   fit,
 }: PuzzleBoardProps) {
   const [placements, setPlacements] = useState<readonly Placement[]>(
@@ -113,6 +118,9 @@ export function PuzzleBoard({
   const threshold = snapThreshold(puzzle);
   const size = stageSize(puzzle);
   const solved = isSolved(puzzle, placements);
+  const effects = completionEffects(solved, prefersReducedMotion());
+  // The finished picture is only encoded once the puzzle is solved.
+  const pictureUrl = useMemo(() => (effects.picture ? source.toDataURL("image/png") : null), [effects.picture, source]);
 
   // Every piece's on-screen place follows the placements. A drag moves pieces directly, and the
   // next commit puts them back where the placements say.
@@ -177,7 +185,9 @@ export function PuzzleBoard({
       else setPlacements((p) => p.slice());
       return;
     }
-    setPlacements(drop(puzzle, d.base, d.id, d.dx, d.dy, threshold).placements);
+    const result = drop(puzzle, d.base, d.id, d.dx, d.dy, threshold);
+    setPlacements(result.placements);
+    onPlace?.(result.snapped ? "snap" : "drop", result.placements);
   };
 
   const onPointerCancel = () => {
@@ -188,7 +198,7 @@ export function PuzzleBoard({
   return (
     <div className="puzzle" style={{ width: size.width * fit, height: size.height * fit }}>
       <div
-        className="puzzle-stage"
+        className={effects.shimmer ? "puzzle-stage is-shimmering" : "puzzle-stage"}
         style={{ width: size.width, height: size.height, transform: `scale(${fit})` }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -224,9 +234,17 @@ export function PuzzleBoard({
             />
           );
         })}
+        {pictureUrl && (
+          <img
+            className={effects.fadeIn ? "puzzle-reveal puzzle-reveal-fade" : "puzzle-reveal"}
+            src={pictureUrl}
+            alt=""
+            style={{ width: puzzle.width, height: puzzle.height }}
+          />
+        )}
       </div>
       {solved && (
-        <p className="solved-note" role="status">
+        <p className="solved-note" role="status" style={{ top: (puzzle.height * fit) / 2 }}>
           Solved!
         </p>
       )}
