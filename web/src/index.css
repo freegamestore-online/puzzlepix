@@ -95,10 +95,66 @@ body {
   box-sizing: border-box;
 }
 
-.art-frame canvas {
+/* Puzzle controls: a row of options that wraps on narrow screens. */
+.puzzle-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* The table is centred in the space left under the controls. */
+.puzzle-wrap {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.puzzle {
+  position: relative;
+}
+
+/* Pieces move in table pixels; the stage is scaled to the screen as a whole. */
+.puzzle-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+.puzzle-board {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  border: 2px dashed var(--line-strong);
+  border-radius: 8px;
+}
+
+.piece {
+  position: absolute;
+  left: 0;
+  top: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.piece canvas {
   display: block;
-  width: min(88vw, 60dvh);
-  height: auto;
-  aspect-ratio: 1;
-  border-radius: var(--radius);
+}
+
+.solved-note {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  color: var(--accent);
+  font: 800 1.5rem "Fraunces", serif;
+  pointer-events: none;
 }
